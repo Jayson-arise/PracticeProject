@@ -3,59 +3,40 @@ package org.example;
 import java.util.List;
 
 public class Student {
+
+    // Unique identifier for the student.
     private int id;
-    private int school_id;
+
+    // Name of the student.
     private String name;
-    private List<Attendance> attendance;
-    private String createdAt;
-    private String updatedAt;
 
+    // List containing attendance records for the student.
+    private List<AttendanceDate> attendance;
 
+    /**
+     * Getter method for retrieving the student's unique identifier.
+     *
+     * @return Integer representing the student's ID.
+     */
     public int getId() {
         return id;
     }
 
-    public int getschool_id() {
-        return school_id;
-    }
-
+    /**
+     * Getter method for retrieving the student's name.
+     *
+     * @return String representing the student's name.
+     */
     public String getName() {
         return name;
     }
 
-    public List<Attendance> getAttendance() {
+    /**
+     * Getter method for retrieving the attendance records for the student.
+     *
+     * @return List of AttendanceDate objects representing the student's attendance.
+     */
+    public List<AttendanceDate> getAttendance() {
         return attendance;
-    }
-
-    public String getCreatedAt() {
-        return createdAt;
-    }
-
-    public String getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public void setSchoolId(int schoolId) {
-        this.school_id = schoolId;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void setAttendance(List<Attendance> attendance) {
-        this.attendance = attendance;
-    }
-
-    public void setCreatedAt(String createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public void setUpdatedAt(String updatedAt) {
-        this.updatedAt = updatedAt;
     }
 }

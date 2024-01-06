@@ -1,71 +1,131 @@
 package org.example;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.JsonNode;
+import java.util.Scanner;
 
 public class Main {
-    public static void main(String[] args) {
-        // Create an instance of AttendanceManager
-        AttendanceManager attendanceManager = new AttendanceManager();
 
-        // Fetch all data from the API
-        String allDataResponse = attendanceManager.getAllDataFromAPI();
-        System.out.println("All Data from API:\n" + allDataResponse);
+    // For deserialization (from JSON to string)
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
-        // Search for a student in the API
-        String searchResponse = attendanceManager.searchStudentInAPI("Almirante");
-        System.out.println("Search Result:\n" + searchResponse);
+    public static void main(String[] args) throws IOException {
+        try (Scanner scanner = new Scanner(System.in)) {
+            while (true) {
+                // Display menu options
+                System.out.println("""
+                        \nATTENDANCE RECORD
+                        
+                        1. Display All Data
+                        2. Search Student
+                        3. Exit
+                        Enter:\s""");
 
-        // Parse and display detailed information using ObjectMapper
-        displayDetailedInformationWithObjectMapper(allDataResponse);
-    }
+                byte userInput = scanner.nextByte();
 
-    // Helper method to parse and display detailed information using ObjectMapper
-    private static void displayDetailedInformationWithObjectMapper(String apiResponse) {
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        try {
-            JsonNode root = objectMapper.readTree(apiResponse);
-
-            // Iterate over sections
-            Iterator<Map.Entry<String, JsonNode>> sections = root.fields();
-            while (sections.hasNext()) {
-                Map.Entry<String, JsonNode> sectionEntry = sections.next();
-                String sectionName = sectionEntry.getKey();
-                JsonNode sectionNode = sectionEntry.getValue();
-
-                System.out.println(sectionName + ":");
-
-                // Iterate over sections (section-a, section-b, section-c)
-                Iterator<Map.Entry<String, JsonNode>> classes = sectionNode.fields();
-                while (classes.hasNext()) {
-                    Map.Entry<String, JsonNode> classEntry = classes.next();
-                    String className = classEntry.getKey();
-                    JsonNode classNode = classEntry.getValue();
-
-                    System.out.println("  " + className + ":");
-
-                    // Iterate over students in each class
-                    for (JsonNode studentNode : classNode.get("data")) {
-                        Student student = objectMapper.treeToValue(studentNode, Student.class);
-                        System.out.println("    ID: " + student.getId());
-                        System.out.println("    Name: " + student.getName());
-
-                        // Iterate over attendance
-                        for (Attendance attendance : student.getAttendance()) {
-                            System.out.println("      Date: " + attendance.getDate() + ", Present: " + attendance.isPresent());
-                        }
-                    }
+                if (userInput == 1) {
+                    // Display all data
+                    String response = AttendanceManager.getData("/all");
+                    displayAllData(response);
+                } else if (userInput == 2) {
+                    // Search for a student
+                    scanner.nextLine(); // Consume newline character
+                    System.out.println("Enter Student Name: ");
+                    String studentName = scanner.nextLine();
+                    String response = AttendanceManager.getData("/student/search?search=" + studentName);
+                    searchStudentData(response);
+                } else {
+                    // Exit the program
+                    System.out.println("Bye.");
+                    break;
                 }
             }
-
-        } catch (IOException e) {
+        } catch (Exception e) {
+            // Handle exceptions
             e.printStackTrace();
         }
     }
 
-}
+    public static void displayAllData(String data) throws JsonProcessingException {
+        // Deserialize JSON response to Course object
+        Course course = objectMapper.readValue(data, Course.class);
+        System.out.println("Course: CSC200");
 
+        // Iterate through sections of the course
+        for (Map.Entry<String, Section> section : course.getcsc200().entrySet()) {
+            System.out.println("\nSection: " + section.getKey());
+
+            Section sectionData = section.getValue();
+            System.out.println("Total Students: " + sectionData.getTotal_students());
+
+            // Display data for each student in the section
+            System.out.println("Data: ");
+            List<Student> students = sectionData.getStudentsInSection();
+
+            // Iterate through the students of a section
+            for (Student student : students) {
+                System.out.println();
+                System.out.println("Student ID: " + student.getId());
+                System.out.println("Student Name: " + student.getName());
+
+                System.out.println("Attendance: ");
+                for (AttendanceDate attendances : student.getAttendance()) {
+                    // Display attendance information
+                    if (attendances.isIs_present()) {
+                        System.out.println("Present: " + attendances.getDate());
+                    } else {
+                        System.out.println("Absent: " + attendances.getDate());
+                    }
+                }
+            }
+        }
+    }
+
+    public static void searchStudentData(String data) throws JsonProcessingException {
+        // Read JSON data and create a JSON tree structure
+        JsonNode rootNode = objectMapper.readTree(data);
+        JsonNode csc200Node = rootNode.get("csc200");
+        System.out.println("Course: CSC200");
+
+        JsonNode dataNode = csc200Node.get("data");
+
+        if (dataNode != null) {
+            // The iterator fieldsIterator loops through the fields (key-value pairs)
+            // of the JSON object (dataNode) to access each field individually
+            Iterator<Map.Entry<String, JsonNode>> fieldsIterator = dataNode.fields();
+
+            while (fieldsIterator.hasNext()) {
+                Map.Entry<String, JsonNode> section = fieldsIterator.next();
+
+                System.out.println("\nSection: " + section.getKey());
+
+                JsonNode studentsNode = section.getValue();
+
+                for (JsonNode student : studentsNode) {
+                    System.out.println();
+                    System.out.println("Student ID: " + student.get("id").asInt());
+                    System.out.println("Student Name: " + student.get("name").asText());
+
+                    JsonNode attendanceNode = student.get("attendance");
+                    System.out.println("Attendance: ");
+
+                    for (JsonNode attendances : attendanceNode) {
+                        boolean isPresent = attendances.get("is_present").asBoolean();
+
+                        if (isPresent) {
+                            System.out.println("Present: " + attendances.get("date").asText());
+                        } else {
+                            System.out.println("Absent: " + attendances.get("date").asText());
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

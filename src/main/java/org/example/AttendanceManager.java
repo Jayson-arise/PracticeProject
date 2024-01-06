@@ -1,56 +1,41 @@
 package org.example;
 
-import java.io.BufferedReader;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URISyntaxException;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 
 public class AttendanceManager {
-    private Section csc200SectionA;
 
-    public AttendanceManager() {
-        // Initialize or fetch Section data as needed
-        // For simplicity, assuming that data is available
-        // You may load data from a file or another source
-    }
+    // This handles HTTP requests and responses.
+    private static final HttpClient client = HttpClient.newHttpClient();
 
-    // Fetch all data from the API
-    public String getAllDataFromAPI() {
-        return sendGetRequest("http://127.0.0.1:8000/api/all");
-    }
+    // Base URI for the API
+    private static final String BASE_URI = "http://127.0.0.1:8000/api";
 
-    // Search for a student in the API
-    public String searchStudentInAPI(String query) {
-        String url = "http://127.0.0.1:8000/api/student/search?search=" + query;
-        return sendGetRequest(url);
-    }
-
-    // Helper method to send GET requests
-    private String sendGetRequest(String apiUrl) {
+    /**
+     * Method for fetching data from a specific URI.
+     *
+     * @param dataURI The URI path for the data.
+     * @return The response body as a string.
+     */
+    public static String getData(String dataURI) {
         try {
-            URL url = new URL(apiUrl);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
+            // Building an HTTP GET request using the provided URI
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(new URI(BASE_URI + dataURI))
+                    .GET()
+                    .build();
 
-            int responseCode = connection.getResponseCode();
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String line;
-
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-                reader.close();
-
-                return response.toString();
-            } else {
-                return "Error: " + responseCode;
-            }
-        } catch (IOException e) {
+            // Sending the HTTP request and getting the response
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            return response.body();
+        } catch (IOException | InterruptedException | URISyntaxException e) {
+            // Handle exceptions and print stack trace
             e.printStackTrace();
-            return "Error: " + e.getMessage();
+            return "Error occurred while fetching data: " + e.getMessage();
         }
     }
 }
